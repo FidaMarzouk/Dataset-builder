@@ -1,11 +1,11 @@
 from datasets import load_dataset
-from ..common import make_id
+from ..common import make_id,sample_streaming
 
 def load_ragbench_subset(subset_name: str, split="test"):
-    return load_dataset("rungalileo/ragbench", subset_name, split=split)
+    return load_dataset("rungalileo/ragbench", subset_name, split=split, streaming=True)
 
 def ragbench_to_golden_drafts(subset_name: str, ds, n_samples: int):
-    sample = ds.shuffle(seed=42).select(range(min(n_samples, len(ds))))
+    sample = sample_streaming(ds, n_samples) 
     drafts = []
     for row in sample:
         docs = row["documents"] if isinstance(row["documents"], list) else [row["documents"]]

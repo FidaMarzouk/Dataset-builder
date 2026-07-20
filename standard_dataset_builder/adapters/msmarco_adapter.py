@@ -1,12 +1,11 @@
-# adapters/msmarco_adapter.py
 from datasets import load_dataset
-from ..common import make_id
+from ..common import make_id,sample_streaming
 
-def load_msmarco(split="validation"):
-    return load_dataset("ms_marco", "v2.1", split=split)
+def load_msmarco(split="test"):
+    return load_dataset("microsoft/ms_marco", "v2.1", split=split, streaming=True)
 
 def msmarco_to_golden_drafts(ds, n_samples: int):
-    sample = ds.shuffle(seed=42).select(range(min(n_samples, len(ds))))
+    sample = sample_streaming(ds, n_samples)
     drafts = []
     for row in sample:
         if not row["answers"]:

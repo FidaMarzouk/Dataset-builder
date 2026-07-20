@@ -1,14 +1,14 @@
-# adapters/halubench_adapter.py — PASS only, FAIL rows never generated
 from datasets import load_dataset
-from ..common import make_id
+from ..common import make_id,sample_streaming
 
 def load_halubench(split="test"):
-    return load_dataset("PatronusAI/HaluBench", split=split)
+    return load_dataset("PatronusAI/HaluBench", split=split, streaming=True)
 
 def halubench_to_golden_drafts(ds, n_samples: int):
-    pass_rows = ds.filter(lambda r: r["label"] == "PASS").shuffle(seed=42).select(range(n_samples))
+    pass_only = ds.filter(lambda r: r["label"] == "PASS")
+    sample = sample_streaming(pass_only, n_samples)
     drafts = []
-    for row in pass_rows:
+    for row in sample:
         drafts.append({
             "input": row["question"],
             "expected_output": row["answer"],

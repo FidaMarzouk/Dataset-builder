@@ -1,6 +1,7 @@
 import json, hashlib
 from pydantic import BaseModel, ValidationError
 from typing import Optional, List
+import itertools
 
 class GoldenMetadata(BaseModel):
     task_type: str
@@ -47,3 +48,11 @@ def write_to_standard_dataset(drafts: list[dict], path: str):
         for d in validated:
             f.write(json.dumps(d) + "\n")
     print(f"Wrote {len(validated)} new goldens, skipped {skipped_dupes} duplicates, to {path}")
+
+def sample_streaming(ds, n_samples: int, seed: int = 42, buffer_size: int = 1000):
+    """Shuffle-sample from a streaming (IterableDataset) split without
+    downloading the whole split. buffer_size caps how many rows are held
+    in memory for the shuffle window — increase only if you need more
+    randomness across a large split."""
+    shuffled = ds.shuffle(seed=seed, buffer_size=buffer_size)
+    return list(itertools.islice(shuffled, n_samples))
