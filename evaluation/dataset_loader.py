@@ -1,37 +1,15 @@
-"""
-dataset_loader.py
-
-Loads Goldens into a DeepEval EvaluationDataset, either from the
-project's standard dataset (standard_dataset/goldens.jsonl) or from any
-custom .jsonl file following the same schema:
-
-    {
-      "input": str,
-      "expected_output": str,
-      "context": [str, ...],
-      "retrieval_context": [str, ...],
-      "additional_metadata": {...},
-      "custom_column_key_values": {...},
-      "comments": str
-    }
-"""
-
 import json
 from pathlib import Path
 from typing import List, Optional
+import random
 
 from deepeval.dataset import EvaluationDataset, Golden
 
-# Adjust this if you move evaluation/ relative to standard_dataset/.
-# Currently assumes:
-#   ELYAEVAL/
-#     standard_dataset/goldens.jsonl
-#     evaluation/dataset_loader.py   <- this file
 DEFAULT_STANDARD_DATASET_PATH = (
     Path(__file__).resolve().parent.parent / "standard_dataset" / "goldens.jsonl"
 )
 
-
+#reads jsonl objects converts them into a list of golden objects
 def _read_goldens_jsonl(path: Path) -> List[Golden]:
     if not path.exists():
         raise FileNotFoundError(f"Dataset file not found: {path}")
@@ -60,27 +38,20 @@ def _read_goldens_jsonl(path: Path) -> List[Golden]:
             )
     return goldens
 
-
+#wraps the golden objects in an evaluation dataset
 def load_standard_dataset(path: Optional[Path] = None) -> EvaluationDataset:
     """Loads the project's standard goldens.jsonl into an EvaluationDataset."""
     dataset_path = Path(path) if path else DEFAULT_STANDARD_DATASET_PATH
     goldens = _read_goldens_jsonl(dataset_path)
     return EvaluationDataset(goldens=goldens)
 
-
+#loads any jsonl file following the same schema 
 def load_custom_dataset(path: str) -> EvaluationDataset:
-    """Loads any .jsonl file following the same golden schema."""
     goldens = _read_goldens_jsonl(Path(path))
     return EvaluationDataset(goldens=goldens)
 
 
 def filter_by_metadata(dataset: EvaluationDataset, **filters) -> EvaluationDataset:
-    """
-    Convenience helper: returns a new EvaluationDataset containing only
-    goldens whose additional_metadata matches every key/value in filters.
-
-    e.g. filter_by_metadata(ds, ci_stage="nightly", priority="P2")
-    """
     filtered = [
         g
         for g in dataset.goldens
@@ -88,3 +59,14 @@ def filter_by_metadata(dataset: EvaluationDataset, **filters) -> EvaluationDatas
         and all(g.additional_metadata.get(k) == v for k, v in filters.items())
     ]
     return EvaluationDataset(goldens=filtered)
+
+def limit_dataset(
+    dataset: EvaluationDataset,
+    n: int,
+    shuffle: bool = False,
+    seed: Optional[int] = None,
+) -> EvaluationDataset:
+    goldens = list(dataset.goldens)
+    if shuffle:
+        random.Random(seed).shuffle(goldens)
+    return EvaluationDataset(goldens=goldens[:n])

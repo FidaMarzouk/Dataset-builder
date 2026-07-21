@@ -14,7 +14,7 @@ def my_rag_app(question: str) -> str:
 
 
 if __name__ == "__main__":
-    ev = Evaluation(model=None)  # pass your Ollama/judge wrapper here
+    ev = Evaluation(model=None)
 
     # 1) Standard dataset + registered RAG metrics, running your app live
     results = ev.customeval(
