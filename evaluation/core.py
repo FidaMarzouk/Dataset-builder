@@ -1,5 +1,5 @@
 from typing import Any, Callable, Dict, List, Optional, Union
-
+import inspect
 from deepeval import evaluate
 from deepeval.dataset import EvaluationDataset
 from deepeval.evaluate.configs import AsyncConfig, CacheConfig, DisplayConfig
@@ -51,58 +51,46 @@ class Evaluation:
             )
         return build_metrics(use_case, model=self.model, overrides=metric_overrides)
 
+    @staticmethod
+    def _call_output_fn(fn, input_text, required_fields):
+        sig = inspect.signature(fn)
+        if "required_fields" in sig.parameters:
+            result = fn(input_text, required_fields=required_fields)
+        else:
+            result = fn(input_text)
+        return result if isinstance(result, dict) else {"actual_output": result}
 
     @staticmethod
-    def _build_test_cases(
-        dataset: EvaluationDataset,
-        #called once per golden to produce actual outputs
-        actual_output_fn: Optional[Callable[[str], str]],
-        #a given precomputed list
-        actual_outputs: Optional[List[str]],
-    ) -> List[LLMTestCase]:
+    def _build_test_cases(dataset, actual_output_fn, actual_outputs,
+                           precomputed_by_input=None, required_fields=None):
+        required_fields = required_fields or {"input", "actual_output"}
 
         if actual_output_fn is not None:
             for golden in dataset.goldens:
-                dataset.add_test_case(
-                    LLMTestCase(
-                        input=golden.input,
-                        actual_output=actual_output_fn(golden.input),
-                        expected_output=golden.expected_output,
-                        context=golden.context,
-                        retrieval_context=golden.retrieval_context,
-                    )
-                )
+                fields = Evaluation._call_output_fn(actual_output_fn, golden.input, required_fields)
+                dataset.add_test_case(LLMTestCase(
+                    input=golden.input,
+                    actual_output=fields.get("actual_output"),
+                    expected_output=golden.expected_output,
+                    context=fields.get("context", golden.context),
+                    retrieval_context=fields.get("retrieval_context", golden.retrieval_context),
+                ))
             return dataset.test_cases
 
-        if actual_outputs is not None:
-            if len(actual_outputs) != len(dataset.goldens):
-                raise ValueError(
-                    "actual_outputs length must match number of goldens "
-                    f"({len(actual_outputs)} != {len(dataset.goldens)}). "
-                    "Pass num_goldens=<len(actual_outputs)> to customeval() to "
-                    "align the two, or trim actual_outputs to match the dataset."
-                )
-            for golden, output in zip(dataset.goldens, actual_outputs):
-                dataset.add_test_case(
-                    LLMTestCase(
-                        input=golden.input,
-                        actual_output=output,
-                        expected_output=golden.expected_output,
-                        context=golden.context,
-                        retrieval_context=golden.retrieval_context,
-                    )
-                )
+        if precomputed_by_input is not None:
+            for golden in dataset.goldens:
+                rec = precomputed_by_input.get(golden.input)
+                if rec is None:
+                    raise ValueError(f"No precomputed output found for input: {golden.input!r}")
+                dataset.add_test_case(LLMTestCase(
+                    input=golden.input,
+                    actual_output=rec.get("actual_output"),
+                    expected_output=golden.expected_output,
+                    context=rec.get("context", golden.context),
+                    retrieval_context=rec.get("retrieval_context", golden.retrieval_context),
+                ))
             return dataset.test_cases
-
-        if dataset.test_cases:
-            return dataset.test_cases
-
-        raise ValueError(
-            "No actual outputs available. Pass 'actual_output_fn' or "
-            "'actual_outputs' to customeval(), or populate "
-            "dataset.test_cases beforehand via dataset.add_test_case()."
-        )
-
+        
     # ---- main entry point ----------------------------------------------
 
     def customeval(

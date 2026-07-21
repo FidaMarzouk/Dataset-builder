@@ -40,7 +40,6 @@ def _read_goldens_jsonl(path: Path) -> List[Golden]:
 
 #wraps the golden objects in an evaluation dataset
 def load_standard_dataset(path: Optional[Path] = None) -> EvaluationDataset:
-    """Loads the project's standard goldens.jsonl into an EvaluationDataset."""
     dataset_path = Path(path) if path else DEFAULT_STANDARD_DATASET_PATH
     goldens = _read_goldens_jsonl(dataset_path)
     return EvaluationDataset(goldens=goldens)
@@ -50,7 +49,7 @@ def load_custom_dataset(path: str) -> EvaluationDataset:
     goldens = _read_goldens_jsonl(Path(path))
     return EvaluationDataset(goldens=goldens)
 
-
+#we can filter by additional metadata like ci stage, task type ect
 def filter_by_metadata(dataset: EvaluationDataset, **filters) -> EvaluationDataset:
     filtered = [
         g
@@ -60,6 +59,7 @@ def filter_by_metadata(dataset: EvaluationDataset, **filters) -> EvaluationDatas
     ]
     return EvaluationDataset(goldens=filtered)
 
+#an option to specify the size of the evaluation data to be used
 def limit_dataset(
     dataset: EvaluationDataset,
     n: int,

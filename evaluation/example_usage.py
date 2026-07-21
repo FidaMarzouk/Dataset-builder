@@ -1,15 +1,8 @@
-"""
-example_usage.py
-
-Three common ways to call Evaluation.customeval(). Run with:
-    python -m evaluation.example_usage
-"""
-
 from evaluation import Evaluation, UseCase
 
 
 def my_rag_app(question: str) -> str:
-    """Stand-in for your actual RAG pipeline call."""
+    """Stand-in for the actual RAG pipeline call."""
     return f"<generated answer for: {question}>"
 
 
