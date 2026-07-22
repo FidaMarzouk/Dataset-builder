@@ -1,4 +1,3 @@
-# app_clients/base.py
 from typing import Optional, Protocol
 
 class AppClient(Protocol):

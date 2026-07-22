@@ -107,6 +107,7 @@ class Evaluation:
         metric_overrides: Optional[Dict[str, Any]] = None,
         run_async: bool = True,
         show_indicator: bool = True,
+        print_results: bool = True,
         #pull the stored score/reason/pass-fail from its local cache file instead of calling the metric's judge model again
         #based on test case + metric config
         use_cache: bool = False,
@@ -129,7 +130,7 @@ class Evaluation:
             metrics=resolved_metrics,
             async_config=AsyncConfig(run_async=run_async),
             display_config=DisplayConfig(
-                show_indicator=show_indicator, print_results=True
+                show_indicator=show_indicator, print_results=print_results
             ),
             cache_config=CacheConfig(use_cache=use_cache),
             identifier=identifier,
